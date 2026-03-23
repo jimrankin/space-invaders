@@ -54,10 +54,23 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0f; // Pause the game
     }
 
+    public void Victory()
+    {
+        if (UIManager.instance != null)
+            UIManager.instance.ShowVictory();
+        Time.timeScale = 0f;
+    }
+
     public void RestartGame()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    void OnDestroy()
+    {
+        // Clear static reference so it doesn't persist across scene reloads
+        if (instance == this) instance = null;
     }
 
     // --- Audio helpers (safe to call even with no AudioSource) ---

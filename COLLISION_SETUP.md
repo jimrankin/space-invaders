@@ -103,6 +103,15 @@ Canvas               — (Phase 6 — skip until then)
 EventSystem          — (auto-created with Canvas)
 ```
 
+### Phase 6 Addition: VictoryPanel
+
+When you reach Phase 6 (UI), create **three** panels inside the Canvas:
+- **StartPanel** — "Press any key to start" (inactive by default)
+- **GameOverPanel** — "GAME OVER" + Restart button (inactive by default)
+- **VictoryPanel** — "YOU WIN!" + Restart button (inactive by default)
+
+Drag all three panels into the UIManager's Inspector slots. Wire both Restart buttons to `GameManager → RestartGame()`.
+
 ---
 
 ## 7. Quick Test
@@ -113,6 +122,8 @@ Press **Play** and verify:
 3. ✅ Bullets destroy red invader squares on contact
 4. ✅ Invaders fire red bullets downward
 5. ✅ Red bullets hitting the player reduce lives (check Console: no errors)
-6. ✅ At 0 lives, game pauses
+6. ✅ At 0 lives, game pauses (Game Over)
+7. ✅ Destroying all invaders pauses the game (Victory)
+8. ✅ Invaders reaching the player's level triggers Game Over
 
 > **Common fix:** If bullets pass through things, double-check that `Is Trigger = true` is set on ALL colliders (Player, Bullet, EnemyBullet, Invader).

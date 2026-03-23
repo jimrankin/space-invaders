@@ -5,7 +5,7 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager instance;
     public TMP_Text scoreText, livesText;
-    public GameObject gameOverPanel, startPanel;
+    public GameObject gameOverPanel, startPanel, victoryPanel;
 
     void Awake() { instance = this; }
 
@@ -43,5 +43,16 @@ public class UIManager : MonoBehaviour
     {
         if (gameOverPanel != null)
             gameOverPanel.SetActive(true);
+    }
+
+    public void ShowVictory()
+    {
+        if (victoryPanel != null)
+            victoryPanel.SetActive(true);
+    }
+
+    void OnDestroy()
+    {
+        if (instance == this) instance = null;
     }
 }

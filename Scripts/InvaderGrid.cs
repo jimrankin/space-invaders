@@ -7,10 +7,12 @@ public class InvaderGrid : MonoBehaviour
     public float xSpacing = 1.2f, ySpacing = 1f;
     public float moveSpeed = 1.5f;
     public float dropAmount = 0.4f;
+    public float loseHeight = -3f; // Invaders reaching this Y = game over
 
     private float direction = 1f;
     private float edgeLimit = 7f;
-    private bool needsDrop = false;
+    private float edgeCooldown = 0f; // Prevents jitter at edges
+    private bool gameEnded = false;
 
     void Start()
     {
@@ -26,19 +28,45 @@ public class InvaderGrid : MonoBehaviour
 
     void Update()
     {
-        // Don't move if no invaders remain
-        if (transform.childCount == 0) return;
+        if (gameEnded) return;
+
+        // WIN: all invaders destroyed
+        if (transform.childCount == 0)
+        {
+            gameEnded = true;
+            if (GameManager.instance != null)
+                GameManager.instance.Victory();
+            return;
+        }
 
         transform.Translate(Vector2.right * direction * moveSpeed * Time.deltaTime);
 
-        // Check if any invader has hit the edge
-        foreach (Transform child in transform)
+        // Tick down the edge cooldown
+        if (edgeCooldown > 0f)
         {
-            if (child.position.x > edgeLimit || child.position.x < -edgeLimit)
+            edgeCooldown -= Time.deltaTime;
+        }
+        else
+        {
+            // Check if any invader has hit the edge
+            foreach (Transform child in transform)
             {
-                direction *= -1f;
-                transform.Translate(Vector2.down * dropAmount);
-                break;
+                if (child.position.x > edgeLimit || child.position.x < -edgeLimit)
+                {
+                    direction *= -1f;
+                    transform.Translate(Vector2.down * dropAmount);
+                    edgeCooldown = 0.25f; // Don't flip again for 0.25s
+                    break;
+                }
+
+                // LOSE: invaders have reached the player's level
+                if (child.position.y < loseHeight)
+                {
+                    gameEnded = true;
+                    if (GameManager.instance != null)
+                        GameManager.instance.GameOver();
+                    return;
+                }
             }
         }
 
