@@ -812,23 +812,8 @@
         <span class="keyword">if</span> (transform.position.y > 6f)
             Destroy(gameObject);
     }
-
-    <span class="keyword">void</span> OnTriggerEnter2D(<span class="type">Collider2D</span> other)
-    {
-        <span class="comment">// Destroy invader on hit</span>
-        <span class="keyword">if</span> (other.CompareTag(<span class="string">"Invader"</span>))
-        {
-            <span class="keyword">if</span> (<span class="type">GameManager</span>.instance != null)
-            {
-                <span class="type">GameManager</span>.instance.AddScore(10);
-                <span class="type">GameManager</span>.instance.PlayExplosion();
-            }
-            Destroy(other.gameObject);
-            Destroy(gameObject);
-        }
-    }
 }</div>
-          <div class="tip">Drag this Bullet script onto the Bullet prefab in the Prefabs folder (not the scene — the prefab itself). The OnTriggerEnter2D method handles destroying invaders — you'll set up tags and triggers in Phase 5.</div>
+          <div class="tip">Drag this Bullet script onto the Bullet prefab in the Prefabs folder (not the scene — the prefab itself).</div>
         </div>
       </div>
 
@@ -836,7 +821,7 @@
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
           <div class="step-title">Add shooting to PlayerController <span class="step-tag tag-code">C# CODE</span></div>
-          <div class="step-desc">Open <strong>PlayerController.cs</strong> again. Add shooting logic so the player fires on spacebar, plus collision detection for enemy bullets:</div>
+          <div class="step-desc">Open <strong>PlayerController.cs</strong> again. Add shooting logic so the player fires on spacebar:</div>
           <div class="code-block"><span class="keyword">using</span> UnityEngine;
 
 <span class="keyword">public class</span> <span class="type">PlayerController</span> : <span class="type">MonoBehaviour</span>
@@ -855,28 +840,14 @@
         transform.position = <span class="keyword">new</span> <span class="type">Vector3</span>(clampedX, transform.position.y, 0);
 
         <span class="comment">// Fire on spacebar, limited by fire rate</span>
-        <span class="keyword">if</span> (Input.GetKey(KeyCode.Space) &amp;&amp; Time.time > nextFire)
+        <span class="keyword">if</span> (Input.GetKey(KeyCode.Space) && Time.time > nextFire)
         {
             nextFire = Time.time + fireRate;
-            <span class="type">Vector3</span> spawnPos = transform.position + <span class="type">Vector3</span>.up * 0.6f;
-            Instantiate(bulletPrefab, spawnPos, <span class="type">Quaternion</span>.identity);
-
-            <span class="keyword">if</span> (<span class="type">GameManager</span>.instance != null)
-                <span class="type">GameManager</span>.instance.PlayShoot();
-        }
-    }
-
-    <span class="keyword">void</span> OnTriggerEnter2D(<span class="type">Collider2D</span> other)
-    {
-        <span class="keyword">if</span> (other.CompareTag(<span class="string">"EnemyBullet"</span>))
-        {
-            Destroy(other.gameObject);
-            <span class="keyword">if</span> (<span class="type">GameManager</span>.instance != null)
-                <span class="type">GameManager</span>.instance.PlayerHit();
+            Instantiate(bulletPrefab, transform.position, <span class="type">Quaternion</span>.identity);
         }
     }
 }</div>
-          <div class="tip">Back in Unity, select the Player object. Drag your Bullet prefab into the "Bullet Prefab" slot. The OnTriggerEnter2D handles getting hit by enemy bullets — you'll set up the "EnemyBullet" tag in Phase 5.</div>
+          <div class="tip">Back in Unity, select the Player object. You'll see a "Bullet Prefab" slot in the Inspector. Drag your Bullet prefab from the Prefabs folder into that slot. Press Play and test shooting.</div>
         </div>
       </div>
 
@@ -900,8 +871,7 @@
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
           <div class="step-title">Create the Invader prefab <span class="step-tag tag-scene">SCENE</span></div>
-          <div class="step-desc">Right-click Hierarchy → 2D Object → Sprites → <strong>Square</strong>. Name it <strong>Invader</strong>. Scale to (0.7, 0.7, 1). Color it red. Add a <strong>BoxCollider2D</strong> (tick <strong>Is Trigger</strong>). Add a <strong>Rigidbody2D</strong> — set Body Type to <strong>Kinematic</strong> and Gravity Scale to <strong>0</strong>. Drag it into your Prefabs folder. Delete it from the Hierarchy. You'll spawn these programmatically.</div>
-          <div class="warn">The Rigidbody2D is essential — without it, OnTriggerEnter2D will never fire and bullets will pass straight through.</div>
+          <div class="step-desc">Right-click Hierarchy → 2D Object → Sprites → <strong>Square</strong>. Name it <strong>Invader</strong>. Scale to (0.7, 0.7, 1). Color it red. Add a <strong>BoxCollider2D</strong>. Drag it into your Prefabs folder. Delete it from the Hierarchy. You'll spawn these programmatically.</div>
         </div>
       </div>
 
@@ -909,8 +879,9 @@
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
           <div class="step-title">Write the InvaderGrid script <span class="step-tag tag-code">C# CODE</span></div>
-          <div class="step-desc">Create a new C# Script called <strong>InvaderGrid</strong>. This script spawns and moves all the invaders, with win/lose conditions and smooth edge handling:</div>
+          <div class="step-desc">Create a new C# Script called <strong>InvaderGrid</strong>. This script spawns and moves all the invaders:</div>
           <div class="code-block"><span class="keyword">using</span> UnityEngine;
+<span class="keyword">using</span> System.Collections;
 
 <span class="keyword">public class</span> <span class="type">InvaderGrid</span> : <span class="type">MonoBehaviour</span>
 {
@@ -919,18 +890,16 @@
     <span class="keyword">public float</span> xSpacing = 1.2f, ySpacing = 1f;
     <span class="keyword">public float</span> moveSpeed = 1.5f;
     <span class="keyword">public float</span> dropAmount = 0.4f;
-    <span class="keyword">public float</span> loseHeight = -3f;
 
     <span class="keyword">private float</span> direction = 1f;
     <span class="keyword">private float</span> edgeLimit = 7f;
-    <span class="keyword">private float</span> edgeCooldown = 0f;
-    <span class="keyword">private bool</span> gameEnded = false;
+    <span class="keyword">private bool</span> needsDrop = false;
 
     <span class="keyword">void</span> Start()
     {
         <span class="comment">// Spawn the grid of invaders</span>
-        <span class="keyword">for</span> (<span class="keyword">int</span> r = 0; r &lt; rows; r++)
-            <span class="keyword">for</span> (<span class="keyword">int</span> c = 0; c &lt; cols; c++)
+        <span class="keyword">for</span> (<span class="keyword">int</span> r = 0; r < rows; r++)
+            <span class="keyword">for</span> (<span class="keyword">int</span> c = 0; c < cols; c++)
             {
                 <span class="type">Vector3</span> pos = transform.position +
                     <span class="keyword">new</span> <span class="type">Vector3</span>(c * xSpacing, -r * ySpacing, 0);
@@ -940,42 +909,16 @@
 
     <span class="keyword">void</span> Update()
     {
-        <span class="keyword">if</span> (gameEnded) <span class="keyword">return</span>;
-
-        <span class="comment">// WIN: all invaders destroyed</span>
-        <span class="keyword">if</span> (transform.childCount == 0)
-        {
-            gameEnded = true;
-            <span class="keyword">if</span> (<span class="type">GameManager</span>.instance != null)
-                <span class="type">GameManager</span>.instance.Victory();
-            <span class="keyword">return</span>;
-        }
-
         transform.Translate(<span class="type">Vector2</span>.right * direction * moveSpeed * Time.deltaTime);
 
-        <span class="keyword">if</span> (edgeCooldown > 0f)
+        <span class="comment">// Check if any invader has hit the edge</span>
+        <span class="keyword">foreach</span> (<span class="type">Transform</span> child <span class="keyword">in</span> transform)
         {
-            edgeCooldown -= Time.deltaTime;
-        }
-        <span class="keyword">else</span>
-        {
-            <span class="keyword">foreach</span> (<span class="type">Transform</span> child <span class="keyword">in</span> transform)
+            <span class="keyword">if</span> (child.position.x > edgeLimit || child.position.x < -edgeLimit)
             {
-                <span class="keyword">if</span> (child.position.x > edgeLimit || child.position.x &lt; -edgeLimit)
-                {
-                    direction *= -1f;
-                    transform.Translate(<span class="type">Vector2</span>.down * dropAmount);
-                    edgeCooldown = 0.25f;
-                    <span class="keyword">break</span>;
-                }
-                <span class="comment">// LOSE: invaders reached the player</span>
-                <span class="keyword">if</span> (child.position.y &lt; loseHeight)
-                {
-                    gameEnded = true;
-                    <span class="keyword">if</span> (<span class="type">GameManager</span>.instance != null)
-                        <span class="type">GameManager</span>.instance.GameOver();
-                    <span class="keyword">return</span>;
-                }
+                direction *= -1f;
+                transform.Translate(<span class="type">Vector2</span>.down * dropAmount);
+                <span class="keyword">break</span>;
             }
         }
 
@@ -1015,32 +958,7 @@
         }
     }
 }</div>
-          <div class="tip">Now create the EnemyBullet script (next step) before wiring this up.</div>
-        </div>
-      </div>
-
-      <div class="step" onclick="toggleStep(this)">
-        <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
-        <div class="step-body">
-          <div class="step-title">Create the EnemyBullet prefab and script <span class="step-tag tag-code">C# CODE</span></div>
-          <div class="step-desc">Create a new 2D Square sprite, name it <strong>EnemyBullet</strong>. Scale to (0.1, 0.4, 1). Color it <strong>red/orange</strong>. Add a <strong>BoxCollider2D</strong> (tick Is Trigger), a <strong>Rigidbody2D</strong> (Kinematic, Gravity 0). Set its Tag to <strong>EnemyBullet</strong> and Layer to <strong>EnemyBullet</strong>. Create this script:</div>
-          <div class="code-block"><span class="keyword">using</span> UnityEngine;
-
-<span class="keyword">public class</span> <span class="type">EnemyBullet</span> : <span class="type">MonoBehaviour</span>
-{
-    <span class="keyword">public float</span> speed = 8f;
-
-    <span class="keyword">void</span> Update()
-    {
-        <span class="comment">// Move downward (toward the player)</span>
-        transform.Translate(<span class="type">Vector2</span>.down * speed * Time.deltaTime);
-
-        <span class="comment">// Destroy when it leaves the bottom of screen</span>
-        <span class="keyword">if</span> (transform.position.y &lt; -6f)
-            Destroy(gameObject);
-    }
-}</div>
-          <div class="tip">Drag the EnemyBullet script onto the EnemyBullet prefab. Then drag the EnemyBullet <strong>prefab</strong> into the EnemyShooter's "Bullet Prefab" slot on the Invader prefab. Delete the EnemyBullet from the Hierarchy.</div>
+          <div class="warn">Create a second bullet prefab called <strong>EnemyBullet</strong> — make it red/orange and moving downward (change Vector2.up to Vector2.down in the Bullet script, or make a separate EnemyBullet script). Assign it to the EnemyShooter on the Invader prefab.</div>
         </div>
       </div>
 
@@ -1072,9 +990,18 @@
       <div class="step" onclick="toggleStep(this)">
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
-          <div class="step-title">Verify collision code is in place <span class="step-tag tag-code">C# CODE</span></div>
-          <div class="step-desc">Good news — you already added the collision detection code in Phase 3 and 4. <strong>Bullet.cs</strong> has <code>OnTriggerEnter2D</code> that destroys invaders, and <strong>PlayerController.cs</strong> has <code>OnTriggerEnter2D</code> that handles enemy bullet hits. Make sure all colliders have <strong>Is Trigger = true</strong> and all Tags are assigned correctly (<strong>Invader</strong> on the Invader prefab, <strong>EnemyBullet</strong> on the EnemyBullet prefab).</div>
-          <div class="tip">If bullets pass through things, the most common cause is Is Trigger not being ticked, or Tags not being created/assigned.</div>
+          <div class="step-title">Add collision detection to Bullet <span class="step-tag tag-code">C# CODE</span></div>
+          <div class="step-desc">Update <strong>Bullet.cs</strong> to handle hitting an invader:</div>
+          <div class="code-block"><span class="keyword">void</span> OnTriggerEnter2D(<span class="type">Collider2D</span> other)
+{
+    <span class="keyword">if</span> (other.CompareTag(<span class="string">"Invader"</span>))
+    {
+        <span class="type">GameManager</span>.instance.AddScore(10);
+        Destroy(other.gameObject);
+        Destroy(gameObject);
+    }
+}</div>
+          <div class="tip">Add the Tag "Invader" to the Invader prefab (Inspector → Tag dropdown → Add Tag). Make both colliders Is Trigger = true on the bullets.</div>
         </div>
       </div>
 
@@ -1091,44 +1018,31 @@
     <span class="keyword">public static</span> <span class="type">GameManager</span> instance;
     <span class="keyword">public int</span> score = 0;
     <span class="keyword">public int</span> lives = 3;
-    <span class="keyword">public</span> <span class="type">AudioClip</span> shootSound, explosionSound, gameOverSound;
-    <span class="keyword">private</span> <span class="type">AudioSource</span> audioSource;
 
     <span class="keyword">void</span> Awake()
     {
+        <span class="comment">// Singleton — only one GameManager exists</span>
         <span class="keyword">if</span> (instance == null) instance = this;
-        <span class="keyword">else</span> { Destroy(gameObject); <span class="keyword">return</span>; }
-        audioSource = GetComponent&lt;<span class="type">AudioSource</span>&gt;();
+        <span class="keyword">else</span> Destroy(gameObject);
     }
 
     <span class="keyword">public void</span> AddScore(<span class="keyword">int</span> points)
     {
         score += points;
-        <span class="keyword">if</span> (<span class="type">UIManager</span>.instance != null)
-            <span class="type">UIManager</span>.instance.UpdateScore(score);
+        <span class="type">UIManager</span>.instance.UpdateScore(score);
     }
 
     <span class="keyword">public void</span> PlayerHit()
     {
         lives--;
-        <span class="keyword">if</span> (<span class="type">UIManager</span>.instance != null)
-            <span class="type">UIManager</span>.instance.UpdateLives(lives);
-        <span class="keyword">if</span> (lives &lt;= 0) GameOver();
+        <span class="type">UIManager</span>.instance.UpdateLives(lives);
+        <span class="keyword">if</span> (lives <= 0) GameOver();
     }
 
     <span class="keyword">public void</span> GameOver()
     {
-        <span class="keyword">if</span> (<span class="type">UIManager</span>.instance != null)
-            <span class="type">UIManager</span>.instance.ShowGameOver();
-        PlayGameOver();
-        Time.timeScale = 0f;
-    }
-
-    <span class="keyword">public void</span> Victory()
-    {
-        <span class="keyword">if</span> (<span class="type">UIManager</span>.instance != null)
-            <span class="type">UIManager</span>.instance.ShowVictory();
-        Time.timeScale = 0f;
+        <span class="type">UIManager</span>.instance.ShowGameOver();
+        Time.timeScale = 0f; <span class="comment">// Pause the game</span>
     }
 
     <span class="keyword">public void</span> RestartGame()
@@ -1136,26 +1050,24 @@
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
-
-    <span class="keyword">void</span> OnDestroy()
-    {
-        <span class="keyword">if</span> (instance == this) instance = null;
-    }
-
-    <span class="keyword">public void</span> PlayShoot()     { <span class="keyword">if</span> (audioSource != null &amp;&amp; shootSound != null) audioSource.PlayOneShot(shootSound); }
-    <span class="keyword">public void</span> PlayExplosion() { <span class="keyword">if</span> (audioSource != null &amp;&amp; explosionSound != null) audioSource.PlayOneShot(explosionSound); }
-    <span class="keyword">public void</span> PlayGameOver()  { <span class="keyword">if</span> (audioSource != null &amp;&amp; gameOverSound != null) audioSource.PlayOneShot(gameOverSound); }
 }</div>
-          <div class="tip">This version includes audio (Phase 7), Victory (win condition), and null-safe UIManager calls so you can test before building the UI.</div>
         </div>
       </div>
 
       <div class="step" onclick="toggleStep(this)">
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
-          <div class="step-title">Test collisions <span class="step-tag tag-test">TEST</span></div>
-          <div class="step-desc">Press Play and test: shoot invaders (they should disappear and score goes up in the console), let enemy bullets hit your ship (lives decrease). At 0 lives, the game should pause. If all invaders are destroyed, the game should pause with a victory. If any invader reaches Y=-3, game over triggers automatically.</div>
-          <div class="warn">If nothing happens when bullets hit: check Is Trigger is ticked on ALL colliders, Tags are created and assigned, and layers are configured in the collision matrix.</div>
+          <div class="step-title">Handle player getting hit <span class="step-tag tag-code">C# CODE</span></div>
+          <div class="step-desc">Add collision detection to <strong>PlayerController.cs</strong>:</div>
+          <div class="code-block"><span class="keyword">void</span> OnTriggerEnter2D(<span class="type">Collider2D</span> other)
+{
+    <span class="keyword">if</span> (other.CompareTag(<span class="string">"EnemyBullet"</span>))
+    {
+        Destroy(other.gameObject);
+        <span class="type">GameManager</span>.instance.PlayerHit();
+    }
+}</div>
+          <div class="tip">Add the tag "EnemyBullet" to your enemy bullet prefab the same way you added "Invader".</div>
         </div>
       </div>
 
@@ -1187,7 +1099,7 @@
         <div class="step-check"><div class="checkbox"><span class="checkmark">✓</span></div></div>
         <div class="step-body">
           <div class="step-title">Create Game Over and Start screen panels <span class="step-tag tag-scene">SCENE</span></div>
-          <div class="step-desc">Inside the Canvas, right-click → <strong>UI → Panel</strong>. Name it <strong>GameOverPanel</strong>. Set its color to black with some transparency. Add a TextMeshPro text inside it saying "GAME OVER". Add a <strong>UI → Button</strong> inside it, label it "RESTART". Duplicate the panel, name it <strong>StartPanel</strong>, change text to "SPACE INVADERS — Press any key to start". Duplicate again, name it <strong>VictoryPanel</strong>, change text to "YOU WIN!", keep the Restart button. Set all three panels to <strong>inactive</strong> by unchecking the checkbox next to their name in the Inspector.</div>
+          <div class="step-desc">Inside the Canvas, right-click → <strong>UI → Panel</strong>. Name it <strong>GameOverPanel</strong>. Set its color to black with some transparency. Add a TextMeshPro text inside it saying "GAME OVER". Add a <strong>UI → Button</strong> inside it, label it "RESTART". Duplicate the panel, name it <strong>StartPanel</strong>, change text to "SPACE INVADERS — Press any key to start". Set GameOverPanel and StartPanel to <strong>inactive</strong> by unchecking the checkbox next to their name in the Inspector.</div>
         </div>
       </div>
 
@@ -1203,33 +1115,26 @@
 {
     <span class="keyword">public static</span> <span class="type">UIManager</span> instance;
     <span class="keyword">public</span> <span class="type">TMP_Text</span> scoreText, livesText;
-    <span class="keyword">public</span> <span class="type">GameObject</span> gameOverPanel, startPanel, victoryPanel;
+    <span class="keyword">public</span> <span class="type">GameObject</span> gameOverPanel, startPanel;
 
     <span class="keyword">void</span> Awake() { instance = this; }
 
-    <span class="keyword">void</span> Start()
-    {
-        <span class="keyword">if</span> (startPanel != null)
-        { startPanel.SetActive(true); Time.timeScale = 0f; }
-    }
+    <span class="keyword">void</span> Start() { startPanel.SetActive(true); Time.timeScale = 0f; }
 
     <span class="keyword">void</span> Update()
     {
-        <span class="keyword">if</span> (startPanel != null &amp;&amp; startPanel.activeSelf &amp;&amp; Input.anyKeyDown)
+        <span class="keyword">if</span> (startPanel.activeSelf && Input.anyKeyDown)
         {
             startPanel.SetActive(false);
             Time.timeScale = 1f;
         }
     }
 
-    <span class="keyword">public void</span> UpdateScore(<span class="keyword">int</span> s) { <span class="keyword">if</span> (scoreText != null) scoreText.text = <span class="string">"SCORE: "</span> + s; }
-    <span class="keyword">public void</span> UpdateLives(<span class="keyword">int</span> l) { <span class="keyword">if</span> (livesText != null) livesText.text = <span class="string">"LIVES: "</span> + l; }
-    <span class="keyword">public void</span> ShowGameOver()    { <span class="keyword">if</span> (gameOverPanel != null) gameOverPanel.SetActive(true); }
-    <span class="keyword">public void</span> ShowVictory()     { <span class="keyword">if</span> (victoryPanel != null) victoryPanel.SetActive(true); }
-
-    <span class="keyword">void</span> OnDestroy() { <span class="keyword">if</span> (instance == this) instance = null; }
+    <span class="keyword">public void</span> UpdateScore(<span class="keyword">int</span> s) { scoreText.text = <span class="string">"SCORE: "</span> + s; }
+    <span class="keyword">public void</span> UpdateLives(<span class="keyword">int</span> l) { livesText.text = <span class="string">"LIVES: "</span> + l; }
+    <span class="keyword">public void</span> ShowGameOver()    { gameOverPanel.SetActive(true); }
 }</div>
-          <div class="tip">Wire up both Restart buttons (GameOverPanel and VictoryPanel): select each Button in the Inspector, click + under OnClick(), drag the GameManager object into the slot, and select GameManager → RestartGame. Drag all panels and text objects into the UIManager Inspector slots.</div>
+          <div class="tip">Wire up the Restart button: select the Button in the Inspector, click + under OnClick(), drag the GameManager object into the slot, and select GameManager → RestartGame from the dropdown.</div>
         </div>
       </div>
 
